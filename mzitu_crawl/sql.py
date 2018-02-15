@@ -1,14 +1,15 @@
 # coding=utf-8
 import MySQLdb
-import settings
+from settings import *
 import time
 
+
 connection = MySQLdb.Connect(
-    host=settings.MYSQL_HOST,
-    port=settings.MYSQL_PORT,
-    user=settings.MYSQL_USER,
-    passwd=settings.MYSQL_PASSWORD,
-    db=settings.MYSQL_DATABASE,
+    host=MYSQL_HOST,
+    port=MYSQL_PORT,
+    user=MYSQL_USER,
+    passwd=MYSQL_PASSWORD,
+    db=MYSQL_DATABASE,
 )
 cur = connection.cursor()
 
@@ -41,11 +42,11 @@ class UrlSql(object):
                 }
                 self.cur.execute(sql, value)
                 self.conn.commit()
-            print '数据导入成功\n'
+            print u'数据导入成功\n'
         except MySQLdb.MySQLError as e:
             self.conn.rollback()
             print e
-            print '数据导入失败'
+            print u'数据导入失败'
 
     def get_url_from_database(self):
         """从数据库获取数据"""
@@ -57,7 +58,7 @@ class UrlSql(object):
             for url in ret:
                 self.query.append(url[0])
         except MySQLdb.MySQLError as e:
-            print e
+            print(e)
 
     def delete_all_data(self):
         """删除所有数据"""
@@ -67,16 +68,20 @@ class UrlSql(object):
             sel = raw_input('正在删除数据库所有数据, 请确认(y/n)')[0]
             if sel == 'y':
                 self.conn.commit()
-                print '<<<<<<<<数据已删除!<<<<<<<<'
+                print u'<<<<<<<<数据已删除!<<<<<<<<'
             elif sel == 'n':
-                print '<<<<<<<操作正在取消<<<<<<<<'
+                print u'<<<<<<<操作正在取消<<<<<<<<'
         except MySQLdb.MySQLError as e:
             self.conn.rollback()
             print e
 
     def exit(self):
+        """退出方法"""
         self.cur.close()
         self.conn.close()
-        print '>>>>>>>>>数据库连接已断开<<<<<<<<<'
-        print '程序运行时间: {:.6f} (s)'.format(time.time()-self.start_time)
-        print '>>>>结束时间:\n' + time.ctime()
+        print u'>>>>>>>>>数据库连接已断开<<<<<<<<<'
+        print u'程序运行时间: {:.6f} (s)'.format(time.time()-self.start_time)
+        print u'>>>>结束时间:\n' + time.ctime()
+        print u'>>>>>>>>程序即将退出<<<<<<<<\n'
+        time.sleep(4)
+        print u'>>>>>>>>程序已退出<<<<<<<<<'

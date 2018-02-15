@@ -19,3 +19,6 @@ Headers = {
 # 根路径设置
 Root_Url = 'http://www.mzitu.com/page/'
 Root_Path = 'mypic'
+
+# 爬取机制
+is_auto = True

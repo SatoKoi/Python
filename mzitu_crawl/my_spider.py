@@ -59,12 +59,13 @@ def init_sel():
                     ret = get_strip('(\s+)', '', raw_input('请输入页码进行下载>>>>\n'))
                     sel_quit(ret)
                     try:
-                        if 1 <= int(ret) <= max_num:
-                            return False, int(ret), int(ret)+1
+                        ret = int(ret)
+                        if 1 <= ret <= max_num:
+                            return False, ret, ret
                         else:
                             print '页码输入错误'
                             continue
-                    except Exception:
+                    except ValueError:
                         print '格式错误, 请重新输入'
         else:
             print '格式错误, 请重新输入'
@@ -83,21 +84,32 @@ def get_page_urls(page_sel, start_num, last_num):
     return page_urls
 
 
-def get_img_urls(page_urls, start_page, headers):
+def get_img_urls(page_urls, start_page, headers, new_folder=None, folder_num=1):
     """获取每页图片地址"""
     img_urls = OrderedDict()
     for page_url in page_urls:
-        page_path = os.path.join(os.getcwd(), 'page' + str(start_page))
-        start_page += 1
-        if not os.path.exists(page_path):
-            os.mkdir(page_path)
+        if new_folder is None:
+            page_path = os.path.join(sys.path[0], 'page' + str(start_page))
+            start_page += 1
+        else:
+            page_path = os.path.join(sys.path[0], new_folder, str(folder_num))
+        while True:
+            if not os.path.exists(page_path):
+                os.mkdir(page_path)
+            count = len(os.listdir(page_path))
+            if count > 24:
+                folder_num += 1
+                page_path = os.path.join(sys.path[0], new_folder, str(folder_num))
+            else:
+                break
+
         resp = requests.get(page_url, headers=headers)
         resp.encoding = 'utf-8'
         soup = bs(resp.text, 'html.parser')
         lis = soup.find('ul', id='pins').find_all('li')
         for li in lis:
             a_link = li.find_all('a')[1]
-            folder_name = os.path.join(page_path, get_strip('([,.?:";*~|!^]+)', '', a_link.get_text()))
+            folder_name = os.path.join(page_path, get_strip('([,.?:";*~|!^@]+)', '', a_link.get_text()))
             img_url = a_link['href']
             img_urls[folder_name] = img_url
     return img_urls
@@ -105,26 +117,27 @@ def get_img_urls(page_urls, start_page, headers):
 
 def generic_downloader(sql, img_urls, headers):
     """通常下载器"""
-    print '>>>>>>>>>>开始下载<<<<<<<<<<'
+    print u'>>>>>>>>>>开始下载<<<<<<<<<<'
     for folder_name, img_url in img_urls.items():
-        if not cache_check(sql, img_url):
+        if not cache_check(folder_name, sql, img_url):
             try:
                 if not os.path.exists(folder_name):
                     os.mkdir(folder_name)
-            except WindowsError as e:
-                print '创建{}文件夹失败, 将跳过当前图片下载'.format(folder_name)
-                print '当前URL:', img_url
+            except WindowsError:
+                print u'创建{}文件夹失败, 将跳过当前图片下载'.format(folder_name)
+                print u'当前URL:', img_url
                 return
             try:
                 max_img_num = get_img_max_page(img_url, headers)
-                print '该图片数', max_img_num
-                print '下载到', folder_name
+                print u'该图片数', max_img_num
+                print u'下载到', folder_name
                 multi_threading_downloader(max_img_num, folder_name, img_url, headers)
                 sql.insert_url_into_database(img_url)
             except Exception as e:
-                print '连接失败', e
+                print u'连接失败', e
         else:
-            print u'总图片 {} 已下载或已存在'.format(folder_name)
+            index = folder_name.rindex('\\')
+            print u'总图集 {} 已下载或已存在'.format(folder_name[index+1:])
 
 
 def multi_threading_downloader(max_img_num, folder_name, img_url, headers):
@@ -154,7 +167,7 @@ def img_downloader(i, folder_name, img_url, headers, lock):
             with open('/'.join([folder_name, str(i) + '.jpg']), 'wb') as f_obj:
                 res = requests.get(img, headers=headers)
                 f_obj.write(res.content)
-                print '图片{}下载完毕'.format(i)
+                print u'图片{}下载完毕'.format(i)
         except Exception as e:
             print e
 
@@ -199,16 +212,25 @@ def get_max_page():
     soup = bs(resp.text, 'html.parser')
     max_page = soup.find('div', class_='nav-links').find_all('a')[3]['href']
     max_num = re.search(r'/(\d+)/', max_page).group(1)
-    print '当前最大页数为', max_num
+    print u'当前最大页数为', max_num
     return int(max_num)
 
 
-def cache_check(sql, img_url):
+def cache_check(folder_name, sql, img_url):
     """检测当前url是否下载过"""
     sql.get_url_from_database()
     try:
-        sql.query.index(img_url)
-        return True
+        if sql.query.index(img_url) and os.path.exists(folder_name):
+            return True
+        else:
+            for i in range(1, 32):
+                i = str(i)
+                index = folder_name.rindex('\\')
+                new_folder = folder_name[:9] + u'page{}'.format(i) + folder_name[index:]
+                auto_folder = folder_name[:9] + u'Auto_add/{}'.format(i) + folder_name[index:]
+                if os.path.exists(new_folder) or os.path.exists(auto_folder):
+                    return True
+            return False
     except ValueError:
         return False
 
@@ -237,16 +259,29 @@ def _final_exit():
     sql.exit()
 
 
+def auto_run():
+    """自动运行函数, 固定爬取前两页的图片, 可在DOS控制台下(cmd)直接运行"""
+    print u'>>>>>>>>>>当前为自动下载模式<<<<<<<<<<<'
+    sel = 1
+    start_page = 1
+    last_page = 2
+    new_folder = u'Auto_add'
+    page_urls = get_page_urls(sel, start_page, last_page)
+    img_urls = get_img_urls(page_urls, start_page, Headers, new_folder=new_folder)
+    generic_downloader(sql, img_urls, Headers)
+
+
 def main():
-    print r'''>>>>
+    print ur'''>>>>
             程序:  妹子图片爬虫
             网址:  http://www.mzitu.com/
-            版本:  0.2
+            版本:  0.5
             作者:  KoiSato
-            日期:  2018-1-21
+            首发:  2018-1-21
+            最终:  2018-2-2  
             环境:  Python 2.7
             IDE:   PyCharm
-            说明:  基于Requests库与MySQL的爬虫程序, 可选择页面范围，或选定页面爬取图片，
+            说明:  基于Requests与MySQL数据库的爬虫程序, 可选择页面范围，或选定页面爬取图片，
                    图片一律下载到page目录的子文件夹里。   
                    输入quit或\q可退出程序。
     >>>>'''
@@ -254,13 +289,15 @@ def main():
     # 删除数据库缓存，慎用
     # sql.delete_all_data()
     while True:
-        sel, start_page, last_page = init_sel()
+        sel, start_page, last_page = init_sel()     # 返回三个参数sel(bool), start_page(int), last_page(int)
         page_urls = get_page_urls(sel, start_page, last_page)
         img_urls = get_img_urls(page_urls, start_page, headers=Headers)
         generic_downloader(sql, img_urls, headers=Headers)
-        print '>>>>>>>>>>下载结束<<<<<<<<<<'
+        print u'>>>>>>>>>>下载结束<<<<<<<<<<'
 
 if __name__ == '__main__':
     sql = UrlSql()
-    main()
-
+    if is_auto:
+        auto_run()
+    else:
+        main()
