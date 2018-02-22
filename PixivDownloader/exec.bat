@@ -1,1 +1,0 @@
-py .\pixiv_spider.py
