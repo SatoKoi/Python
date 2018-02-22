@@ -1,4 +1,4 @@
-# -*- coding:utf-8 -*-
+﻿# -*- coding:utf-8 -*-
 import threading
 from queue import Queue
 from function import *
@@ -23,7 +23,7 @@ class DownloaderThreading(threading.Thread):
                 file_path = os.path.join(sys.path[0], self.folder_name, img_name)
                 if os.path.exists(file_path):
                     wrap_it('Report: 该图片 {} 已存在, 将跳过下载'.format(img_name[:-4]))
-                    time.sleep(0.05)
+                    time.sleep(0.08)
                     continue
                 while True:
                     try:
@@ -63,17 +63,18 @@ class Downloader:
 
 class Checker(object):
     """筛选器"""
-    def __init__(self, illusts, folder_name):
+    def __init__(self, illusts, folder_name, r18):
         self.illusts = illusts
         self.folder_name = folder_name
         self.img_queue = Queue()
+        self.r_18 = r18
 
     def check(self):
         wrap_it('管理器将对资源进行审查')
         count = 0
         for _illust in self.illusts:
             tid = _illust['id']
-            if r_18 is False and _illust['age_limit'] == 'r18':
+            if not self.r_18 and _illust['age_limit'] == 'r18':
                 continue
             if isinstance(_illust['img_url'], list):
                 for url in _illust['img_url']:

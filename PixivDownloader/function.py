@@ -103,7 +103,7 @@ def r_18_confirm():
     global r_18
     sel = input('请确认是否下载r-18的图片, 若不下载, 请输入n (默认下载)\n>>>>')
     sel_quit(sel)
-    if sel is 'n' or 'N':
+    if sel == 'n' or sel == 'N':
         r_18 = False
 
 
@@ -118,13 +118,13 @@ def page_sel(per_page, page):
     while True:
         try:
             per_page = int(input('请输入单页作品数\n>>>>'))
-        except KeyError:
+        except ValueError:
             print('请输入正确的数字')
         while True:
             try:
                 page = int(input('请输入页数\n>>>>'))
                 return per_page, page
-            except KeyError:
+            except ValueError:
                 print('请输入正确的数字')
 
 
@@ -350,12 +350,12 @@ def multi_downloader(per_page, page):
 @running_time
 def start_to_work(url, threading_num, folder_name, manga_block, atlas_count, tags=None):
     """爬虫管理下载机制启动"""
-    global success_img_count
+    global r_18
     json_str = requests.get(url, headers=headers).json()
     all_illusts = get_img_status(json_str, atlas_count=atlas_count, unwanted_tags=tags)
     if all_illusts is None:
         return
-    checker = manager.Checker(all_illusts, folder_name)
+    checker = manager.Checker(all_illusts, folder_name, r_18)
     checker.check()
     downloader = manager.Downloader(checker.img_queue, threading_num, folder_name)
     downloader.work()
@@ -364,8 +364,8 @@ def start_to_work(url, threading_num, folder_name, manga_block, atlas_count, tag
 def date_confirm(mode, date):
     """日期确认"""
     year = int(date[:4])
-    date = date[-4:]
-    if year == int(date):
+    month_day = date[-4:]
+    if year == int(month_day):
         year = int(time.localtime()[0])
     month = int(date[-4:-2])
     day = int(date[-2:])
@@ -464,53 +464,18 @@ def set_search_key():
     def get_key(key_list):
         """获取默认设置或添加自定义设置"""
         real_key = set()
+        key_set_dict = {
+            1: '10000users', 2: '5000users', 3: '3000users', 4: '1000users', 5: '500users',
+            6: '100users', 7: 'VOCALOID', 8: '東方', 9: '艦これ', 10: 'Fate',
+            11: 'FGO', 12: 'アズールレーン', 13: '初音', 14: '少女', 15: '女の子',
+            16: '背景', 17: '百合', 18: '风景',
+            19: 'ロリ', 20: 'R-18', 21: '尻神様'
+        }
         for key in key_list:
             try:
                 key = int(key)
-                if key == 1:
-                    real_key.add('10000users')
-                elif key == 2:
-                    real_key.add('5000users')
-                elif key == 3:
-                    real_key.add('3000users')
-                elif key == 4:
-                    real_key.add('1000users')
-                elif key == 5:
-                    real_key.add('500users')
-                elif key == 6:
-                    real_key.add('100users')
-                elif key == 7:
-                    real_key.add('VOCALOID')
-                elif key == 8:
-                    real_key.add('東方')
-                elif key == 9:
-                    real_key.add('艦これ')
-                elif key == 10:
-                    real_key.add('Fate')
-                elif key == 11:
-                    real_key.add('FGO')
-                elif key == 12:
-                    real_key.add('アズールレーン')
-                elif key == 13:
-                    real_key.add('初音')
-                elif key == 14:
-                    real_key.add('少女')
-                elif key == 15:
-                    real_key.add('女の子')
-                elif key == 16:
-                    real_key.add('背景')
-                elif key == 17:
-                    real_key.add('百合')
-                elif key == 18:
-                    real_key.add('风景')
-                elif key == 19:
-                    real_key.add('ロリ')
-                elif key == 20:
-                    real_key.add('R-18')
-                elif key == 21:
-                    real_key.add('尻神様')
-                else:
-                    real_key.add(str(key))
+                value = key_set_dict.get(key, str(key))
+                real_key.add(value)
             except ValueError:
                 if key is '':
                     pass
@@ -529,8 +494,7 @@ def set_search_key():
             new_list.append(key)
         return new_list[-4:]
     primary_input = '请输入当前想要获取的关键字, 直接回车表示将设置默认关键字[东方 10000users] (输入以下数字获取设置的默认关键字, 输入其他可自定义你想设置的关键字)\n'\
-                    '关键字最多设置四个, 格式为 (每个关键字用逗号或空格隔开)\n'\
-                    '创建存放图片文件夹时, 将根据设置的关键字从后往前设置'
+                    '关键字最多设置四个, 格式为 (每个关键字用逗号或空格隔开)\n'
     primary_tags = '----------以下是用户收藏数关键字-----------\n  '\
                    '1、10000users  2、5000users\n  3、3000users   4、1000users\n  5、500users    6、100users\n'\
                    '---------以下是常见IP热门作品关键字---------\n  '\
