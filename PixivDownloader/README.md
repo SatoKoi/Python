@@ -9,3 +9,5 @@ Python版本: 3.6
 pip3 install requests
 
 执行pixiv_spider.py或者exec.bat运行程序
+
+请确保所有执行文件在同一级目录里
