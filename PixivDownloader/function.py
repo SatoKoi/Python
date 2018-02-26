@@ -144,7 +144,7 @@ def atlas_count_sel():
             if count == '':
                 return 20
             return int(count)
-        except KeyError:
+        except ValueError:
             print('请输入正确的数字')
 
 
