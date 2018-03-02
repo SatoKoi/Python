@@ -2,6 +2,8 @@
 
 基于Python tkinter的Pixiv下载器
 
+运行pixivGUI.py即可
+
 作者: KoiSato
 
 GitHub: www.github.com/SatoKoi
@@ -11,6 +13,8 @@ GitHub: www.github.com/SatoKoi
 图源: www.pixiv.net
 
 Python版本: 3.6
+
+第三方库: requests, json
 
 p站登不进的请将下面一段代码添加到你的hosts里后面
 
