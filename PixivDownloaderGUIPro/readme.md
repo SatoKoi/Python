@@ -1,4 +1,4 @@
-# PixivDownloader GUI V.Test
+# PixivDownloader V.Test
 
 基于Python tkinter的Pixiv下载器
 
