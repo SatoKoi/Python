@@ -14,9 +14,9 @@ GitHub: www.github.com/SatoKoi
 
 Python版本: 3.6
 
-第三方库: requests, json
+第三方库: requests
 
-p站登不进的请将下面一段代码添加到你的hosts里后面
+p站登不进的请将下面一段代码添加到你的hosts后面
 
 210.129.120.41 www.pixiv.net
 210.140.131.144 source.pixiv.net
