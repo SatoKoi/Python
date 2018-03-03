@@ -501,8 +501,8 @@ def set_default_settings():
 
 def open_pixiv_gui():
     """显示设置面板, 隐藏爬取页面"""
-    ptk.text_control.delete(0.0, END)
     if ptk.read_flag:
+        ptk.text_control.delete(0.0, END)
         center_window(tk, 400, 135)
         tk.deiconify()
         ptk.withdraw()
@@ -1030,7 +1030,9 @@ def rank_downloader(sel_mode, date, manga_block, r_18_block, atlas_count, dir_pa
 
 def search_tag_downloader(key_list, dir_path, manga_block, r_18_block, atlas_count, cls=None, per_page=800, page=1):
     """搜索下载器"""
-    global tags, manga, r_18_str
+    global tags
+    manga = '不获取'
+    r_18_str = '不获取'
     threading_num = 15
     key_list = sorted(key_list, key=lambda x: (x.isdigit(), has_number(x), is_word(x), x.isupper(), x))
     key_word = ' '.join(key_list)
@@ -1087,4 +1089,5 @@ if __name__ == '__main__':
     ptk._listen_window_close()
     setting_tk.withdraw()
     setting_tk_active = False
+    tk.deiconify()
     tk.mainloop()
