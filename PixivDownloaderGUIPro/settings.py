@@ -1,7 +1,7 @@
-# -*- coding:utf-8 -*-
-"""初始参数设置
-"""
 # 请求头设置
+import sys
+import os
+
 headers = {
             'referer': 'https://www.pixiv.net/member_illust.php?mode=medium&illust_id',
             'user-agent': 'Mozilla/5.0 (Windows NT 6.1; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/63.0.3239.132 Safari/537.36',
@@ -22,12 +22,11 @@ mode_year = 'yearly'
 mode_month = 'monthly'
 mode_week = 'weekly'
 mode_day = 'daily'
-json_file_path = './save/data.json'
+path = sys.path[0]
+json_file_path = os.path.join(path, 'save\data.json')
 period = 'all'
 order = 'desc'
 tags = ['漫画', 'BL', '腐向け']
-pixiv_icon = './icon/pixiv.ico'
-settings_icon = './icon/settings.ico'
-
-
-
+pixiv_icon = os.path.join(path, 'icon\pixiv.ico')
+settings_icon = os.path.join(path, 'icon\settings.ico')
+readme = os.path.join(path, 'readme.md')
