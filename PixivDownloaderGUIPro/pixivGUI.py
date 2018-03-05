@@ -10,11 +10,9 @@ from settings import *
 import threading
 import manager
 import fnmatch
-import os
 import requests
 import time
 import json
-import sys
 
 
 class Application(object):
@@ -273,11 +271,11 @@ class PixivSpiderTK(Tk):
             pass
         self.resizable(False, False)
         self._create_control()
-        center_window(self, 800, 500)
 
     def _create_control(self):
         """创建控件"""
-        self.title_label = Label(self, text='Pixiv下载器 V1.5', fg='#49c', font='MicrosoftYahei -20 bold')
+        center_window(self, 800, 500)
+        self.title_label = Label(self, text='Pixiv下载器 V.Test', fg='#49c', font='MicrosoftYahei -20 bold')
         self.title_label.pack(side='top')
         self.message = Message(self, text='  作者: KoiSato\n  日期: 2018-02-28\n  '
                                            '图源: www.pixiv.net\n   Api: https://api.imjad.cn/pixiv.md\n'
@@ -389,10 +387,10 @@ class SettingTk(Tk):
         self.r18_block = r18_block
         self.create_flag = False
         self.select_flag = False
-        center_window(self, 400, 135)
 
     def create_control(self):
         if not self.create_flag:
+            center_window(self, 400, 135)
             self.text_label = Label(self, text='默认值设置', font='YaheiConsola -16 bold', fg='#f1441b')
             self.text_label.pack(side='top', anchor='center')
             self.img_frame = Frame(self)
@@ -713,7 +711,7 @@ def check_message():
 
 def show_spider(mode, **kwargs):
     """开始爬取页面显示"""
-    tk.withdraw()
+    app.tk.withdraw()
     ptk.deiconify()
     # ptk.test_work()
     ptk.get_settings(mode, **kwargs)
@@ -722,7 +720,7 @@ def show_spider(mode, **kwargs):
 
 def show_detail():
     """显示爬取页面"""
-    tk.withdraw()
+    app.tk.withdraw()
     ptk.deiconify()
 
 
@@ -747,12 +745,12 @@ def mk_dir(dir_path, cls=None):
 
 def running_time(function):
     """获取爬虫运行时间, 此函数作为装饰器包装爬虫函数"""
-    def work(*args):
+    def work(*args, **kwargs):
         """对传入函数进行包装, *arg -> args为元组参数, *args对元组拆包
         此处*args表示爬虫函数的多个参数"""
-        cls = args[-1]
+        cls = kwargs.get('cls')
         start_time = time.time()
-        function(*args)
+        function(*args, **kwargs)
         stop_time = time.time()
 
         def time_decorate(start, stop):
@@ -778,6 +776,10 @@ def has_number(input_string):
 def is_word(input_string):
     """检查字符串是否全为字母"""
     return all(char.isalpha() for char in input_string)
+
+
+def get_strip(string):
+    return re.sub(r'[\s`~!@#$%^&*()_+\-=/*,.?<>{}\[\];]+', r'{}'.format(string))
 
 
 def date_confirm(mode, date):
@@ -957,7 +959,7 @@ def single_downloader(headers, illust_id=None, dir_path=None, cls=None):
                         resp = requests.get(url, headers=headers)
                         f_obj.write(resp.content)
         cls.wrap_it('{} 图片下载成功'.format(illust_id))
-    img_download(headers, dir_path, cls)
+    img_download(headers, dir_path=dir_path, cls=cls)
 
 
 def multi_downloader(per_page, page, _id, sel_mode, manga_block, r_18_block, atlas_count, dir_path, cls=None):
@@ -979,19 +981,19 @@ def multi_downloader(per_page, page, _id, sel_mode, manga_block, r_18_block, atl
             .format(page, per_page, folder_name[-4:], manga, r_18_str, atlas_count))
     cls.wrap_it('当前正在获取{}资源, 请稍等...'.format(folder_name[-4:]))
     correct_url = (api_url + '&id=%d&per_page=%d&page=%d') % (_type, int(_id), per_page, page)
-    start_to_work(correct_url, threading_num, dir_path, manga_block, r_18_block, atlas_count, cls)
+    start_to_work(correct_url, threading_num, dir_path, manga_block, r_18_block, atlas_count, cls=cls)
 
 
 @running_time
-def start_to_work(url, threading_num, folder_name, manga_block, r_18_block, atlas_count, cls, tags=None):
+def start_to_work(url, threading_num, folder_name, manga_block, r_18_block, atlas_count, cls=None, tags=None):
     """爬虫管理下载机制启动"""
     json_str = requests.get(url, headers=headers).json()
     all_illusts = get_img_status(json_str, atlas_count=atlas_count, unwanted_tags=tags, cls=cls)
     if all_illusts is None:
         return
-    checker = manager.Checker(all_illusts, folder_name, r_18_block)
+    checker = Checker(all_illusts, folder_name, r_18_block)
     checker.check(cls=cls)
-    downloader = manager.Downloader(checker.img_queue, threading_num, folder_name)
+    downloader = Downloader(checker.img_queue, threading_num, folder_name)
     downloader.work(cls=cls)
 
 
@@ -1025,7 +1027,7 @@ def rank_downloader(sel_mode, date, manga_block, r_18_block, atlas_count, dir_pa
     cls.wrap_it('总页数: {}, 单页作品数: {}, 类型: {}, 漫画: {}, r18: {}, 日期: {}, 单个图集最大图片数量: {}'
             .format(page, per_page, folder_name[-2:], manga, r_18_str, date, atlas_count))
     correct_url = (api_url + '&mode=%s&per_page=%d&page=%d&date=%s') % (_type, _mode, per_page, page, date)
-    start_to_work(correct_url, threading_num, folder_name, manga_block, r_18_block, atlas_count, cls)
+    start_to_work(correct_url, threading_num, folder_name, manga_block, r_18_block, atlas_count, cls=cls)
 
 
 def search_tag_downloader(key_list, dir_path, manga_block, r_18_block, atlas_count, cls=None, per_page=800, page=1):
@@ -1047,7 +1049,7 @@ def search_tag_downloader(key_list, dir_path, manga_block, r_18_block, atlas_cou
             .format(page, per_page, key_word, ' '.join(tags), manga, r_18_str, atlas_count))
     correct_url = (api_url + '&mode=%s&per_page=%d&page=%d&word=%s&period=%s&order=%s') %\
                   (_type, _mode, per_page, page, key_word, period, order)
-    start_to_work(correct_url, threading_num, folder_name, manga_block, r_18_block, atlas_count, cls, tags)
+    start_to_work(correct_url, threading_num, folder_name, manga_block, r_18_block, atlas_count, cls=cls, tags=tags)
 
 
 def get_json_data(json_file_path):
@@ -1067,7 +1069,7 @@ def open_readme():
     app.tk.geometry('+2000+2000')
     ptk.deiconify()
     try:
-        with open('./readme.md', 'r', encoding='utf-8') as f:
+        with open(readme, 'r', encoding='utf-8') as f:
             ptk.text_control.insert(END, f.read())
             ptk.text_control.update()
     except Exception:
