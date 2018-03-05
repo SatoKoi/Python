@@ -1,4 +1,4 @@
-﻿# -*- coding:utf-8 -*-
+# -*- coding:utf-8 -*-
 import threading
 from queue import Queue
 from pixivGUI import mk_dir, get_img_name
@@ -18,31 +18,44 @@ class DownloaderThreading(threading.Thread):
         self.tid = tid
         self.cls = cls
 
-    def run(self):
-        """线程运行"""
-        while True:
-            if not self.queue.empty():
-                img_url = self.queue.get()
-                img_name = get_img_name(img_url)
-                self.cls.wrap_it('[Threading {}]: 正在下载图片 {}, 剩余 {} 张图片'.format(self.tid, img_name[:-4], self.queue.qsize()))
-                file_path = os.path.join(self.folder_name, img_name)
-                if os.path.exists(file_path):
-                    self.cls.wrap_it('Report: 该图片 {} 已存在, 将跳过下载'.format(img_name[:-4]))
-                    time.sleep(0.08)
-                    continue
-                while True:
-                    try:
-                        with open(file_path, 'wb') as f_obj:
-                            resp = requests.get(img_url, headers=self.headers, timeout=40)
-                            f_obj.write(resp.content)
-                        break
-                    except ConnectionError as e:
-                        # self.cls.wrap_it('网络连接错误{}'.format(e))
-                        wrap_it('网络连接错误{}'.format(e))
-                    except Exception as e:
-                        print(e, '{} 图片未能成功下载'.format(img_name[:-4]))
-            else:
-                break
+    class DownloaderThreading(threading.Thread):
+        """下载器线程"""
+
+        def __init__(self, tid, queue, folder_name, cls):
+            threading.Thread.__init__(self)
+            self.queue = queue
+            self.headers = headers
+            self.folder_name = folder_name
+            self.tid = tid
+            self.cls = cls
+
+        def run(self):
+            """线程运行"""
+            while True:
+                if not self.queue.empty():
+                    img_url = self.queue.get()
+                    img_name = get_img_name(img_url)
+                    self.cls.wrap_it('[Threading {}]: 正在下载图片 {}, 剩余 {} 张图片'.format(self.tid, img_name[:-4], self.queue.qsize()))
+                    file_path = os.path.join(self.folder_name, img_name)
+                    if os.path.exists(file_path):
+                        self.cls.wrap_it('Report: 该图片 {} 已存在, 将跳过下载'.format(img_name[:-4]))
+                        time.sleep(0.08)
+                        continue
+                    while True:
+                        try:
+                            with open(file_path, 'wb') as f_obj:
+                                resp = requests.get(img_url, headers=self.headers, timeout=120)
+                                f_obj.write(resp.content)
+                            break
+                        except requests.exceptions.ConnectionError:
+                            try:
+                                self.cls.wrap_it('[Threading {}]: 图片: {} 下载失败, 准备重新下载'.format(self.tid, img_name[:-4]))
+                                continue
+                            except requests.exceptions.ReadTimeout:
+                                self.cls.wrap_it('[Threading {}]: 图片: {} 下载失败, 已放弃该任务'.format(self.tid, img_name[:-4]))
+                                break
+                else:
+                    break
 
 
 class Downloader:
