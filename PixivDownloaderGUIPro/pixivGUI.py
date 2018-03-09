@@ -79,14 +79,14 @@ class Application(object):
 
     def mode_choose(self):
         """下载模式选择, 动态显示控件"""
-        idx = check_mode(self.modeChosen)
-        if idx == 0:
-            self.clear_current_status(idx)
+        self.idx = check_mode(self.modeChosen)
+        if self.idx == 0:
+            self.clear_current_status(self.idx)
             self.init_first()
-            center_window(self.tk, 400, 135)
-        elif idx == 1:
-            center_window(self.tk, 700, 160)
-            self.clear_current_status(idx)
+            center_window(self.tk, mode=self.idx)
+        elif self.idx == 1:
+            center_window(self.tk, mode=self.idx)
+            self.clear_current_status(self.idx)
             self.member_id_label = Label(self.tk, text='*请输入画师id: ', fg='red')
             self.member_id_label.grid(row=1, column=0)
             self.entry_member_id = Entry(self.tk)
@@ -98,9 +98,9 @@ class Application(object):
             self.work_or_collection.bind('<FocusIn>', func=self.findFocus)
             self.sel_idx = 0
             self.set_common_settings()
-        elif idx == 2:
-            center_window(self.tk, 650, 185)
-            self.clear_current_status(idx)
+        elif self.idx == 2:
+            center_window(self.tk, mode=self.idx)
+            self.clear_current_status(self.idx)
             self.rank_label = Label(self.tk, text='*请选择排行榜: ', fg='red')
             self.rank_label.grid(row=1, column=0)
             self.rank_control = ttk.Combobox(self.tk, width='8')
@@ -123,9 +123,9 @@ class Application(object):
             self.day_control['values'] = [day for day in range(1, 32)]
             self.day_control.grid(row=2, column=3, sticky='E')
             self.day_control.bind('<FocusIn>', func=self.findFocus)
-        elif idx == 3:
-            center_window(self.tk, 670, 165)
-            self.clear_current_status(idx)
+        elif self.idx == 3:
+            center_window(self.tk, mode=self.idx)
+            self.clear_current_status(self.idx)
             self.tag_label = Label(self.tk, text='*Tag: ', fg='red')
             self.tag_label.grid(row=1, column=0, sticky='E')
             self.tag1 = ttk.Combobox(self.tk, width='12')
@@ -265,6 +265,7 @@ class PixivSpiderTK(Tk):
         super(PixivSpiderTK, self).__init__()
         self.wm_title(title)
         self.read_flag = False
+        self.close_flag = False
         try:
             self.iconbitmap(pixiv_icon)
         except TclError:
@@ -274,7 +275,7 @@ class PixivSpiderTK(Tk):
 
     def _create_control(self):
         """创建控件"""
-        center_window(self, 800, 500)
+        center_window(self, width=800, height=500)
         self.title_label = Label(self, text='Pixiv下载器 V.Test', fg='#49c', font='MicrosoftYahei -20 bold')
         self.title_label.pack(side='top')
         self.message = Message(self, text='  作者: KoiSato\n  日期: 2018-02-28\n  '
@@ -390,7 +391,7 @@ class SettingTk(Tk):
 
     def create_control(self):
         if not self.create_flag:
-            center_window(self, 400, 135)
+            center_window(self, mode=0)
             self.text_label = Label(self, text='默认值设置', font='YaheiConsola -16 bold', fg='#f1441b')
             self.text_label.pack(side='top', anchor='center')
             self.img_frame = Frame(self)
@@ -435,7 +436,7 @@ class SettingTk(Tk):
         global setting_tk_active
         setting_tk_active = False
         self.withdraw()
-        center_window(app.tk, 400, 135)
+        center_window(app.tk, mode=app.select_status)
 
     def confirm(self):
         img_num = self.img_num_control.get()
@@ -501,21 +502,22 @@ def open_pixiv_gui():
     """显示设置面板, 隐藏爬取页面"""
     if ptk.read_flag:
         ptk.text_control.delete(0.0, END)
-        center_window(tk, 400, 135)
-        tk.deiconify()
+        center_window(tk, mode=app.select_status)
+        app.tk.deiconify()
         ptk.withdraw()
         return
     if ptk.task_threading.is_alive() and messagebox.askyesno('PixivDownloader V.Test', '当前正在爬取图片, 确认在后台运行程序?'):
-        center_window(tk, 400, 135)
-        tk.deiconify()
+        center_window(tk, mode=app.select_status)
+        app.tk.deiconify()
         ptk.withdraw()
         check_threading = threading.Thread(target=threading_is_alive, args=(ptk.task_threading,))
         check_threading.daemon = True
         check_threading.start()
     elif not ptk.task_threading.is_alive():
-        center_window(tk, 400, 135)
-        tk.deiconify()
+        center_window(tk, mode=app.select_status)
+        app.tk.deiconify()
         ptk.withdraw()
+    app.entry_1.insert(END, app.dir_path)
 
 
 def threading_is_alive(threading):
@@ -528,16 +530,23 @@ def threading_is_alive(threading):
                 app.work_button.config(command=show_detail)
                 set_flag = True
         else:
-            messagebox.showinfo('PixivDownloader V.Test', '下载图片完成')
             app.work_button_name.set('开始爬取')
-            app.work_button.config(command=show_spider)
+            app.work_button.config(command=check_message)
             break
 
 
-def center_window(root, width, height):
+def center_window(root, width=None, height=None, mode=None):
     """水平居中, 垂直中间靠上"""
     screenwidth = root.winfo_screenwidth()
     screenheight = root.winfo_screenheight()
+    if mode == 0:
+        width, height = 400, 135
+    elif mode == 1:
+        width, height = 700, 160
+    elif mode == 2:
+        width, height = 650, 185
+    elif mode == 3:
+        width, height = 670, 165
     currentWidth = (screenwidth - width)/2
     currentHeight = (screenheight - height)/2.5
     size = '+%d+%d' % (currentWidth, currentHeight)
@@ -549,7 +558,7 @@ def init_tk():
     """窗口初始化"""
     tk = Tk()
     tk.title('PixivDownloader设置面版')
-    center_window(tk, 400, 135)
+    center_window(tk, mode=0)
     tk.resizable(False, False)
     return tk
 
@@ -760,6 +769,7 @@ def running_time(function):
             sec = temp - minute * 60
             return minute, sec
         cls.wrap_it('爬虫运行时间: {0[0]:.0f} 分 {0[1]:.0f} 秒\n'.format(time_decorate(start_time, stop_time)))
+        messagebox.showinfo('PixivDownloader V.Test', '下载图片成功!')
     return work
 
 
